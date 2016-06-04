@@ -27,12 +27,16 @@ class ProcessInfo:
     '''
     '''
     def __init__( self, **options ):
+        self.__cache = True
         self.__info = None
         self.__filename = None
 
         self.__is_dirty = True
 
         if "filename" in options: self.__filename = options['filename']
+        if "cache" in options and options['cache'] in (True,False): self.__cache = options['cache']
+
+
 
     def parse_content( self, data ):
 
@@ -62,27 +66,26 @@ class ProcessInfo:
 
     def load_file( self, filename=None ):
 
-        loadfilename = self.__filename
+        if not filename:
+            filename = self.__filename
 
-
-        if filename:
-            loadfilename = filename
-
-        if not os.path.exists( loadfilename ):
+        if not os.path.exists( filename ):
             tb = sys.exc_info()[2]
             raise FileNotFoundError( "PID %(p)s state not found " % {'p': self.__info['pid'] } ).with_traceback(tb)
 
         try:
 
             data = []
-            fd = open( loadfilename, "r" )
+            fd = open( filename, "r" )
             for line in fd:
                 data.append( line.lstrip().rstrip() )
             fd.close()
 
-            self.__info = self.parse_content( data )
+            info = self.parse_content( data )
+            if self.__cache:
+                self.__info = info
 
-            return self
+            return info
 
         except Exception as error:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -91,11 +94,14 @@ class ProcessInfo:
         return None
 
     def get_by( self, key ):
-        return self.__info[ key ]
+        if self.__info:
+            return self.__info[ key ]
+        return None
 
     def get_info( self ):
-        return self.__info
-
+        if self.__info:
+            return self.__info
+        return None
 
 
 class ProcessUtil:
@@ -127,9 +133,9 @@ class ProcessUtil:
 
                     if self.debug: print("DEBUG: Loading process status %(pf)s" % {'pf': statusfile} )
 
-                    pd = ProcessInfo( filename=path+"/"+f+"/"+PROCINFO_FILE , debug=self.debug, test=self.test )
+                    pd = ProcessInfo( filename=path+"/"+f+"/"+PROCINFO_FILE , debug=self.debug, test=self.test, cache=True )
                     ddata = pd.load_file( statusfile )
-                    plist.append( ddata )
+                    plist.append( pd )
 
             except Exception as error:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
