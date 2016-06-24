@@ -54,15 +54,15 @@ MEMINFO_FIELDS=[
 class MemoryInfo:
 
     def __init__( self, fd = None, **options ):
-        self.__cache = True
-        self.__debug = False
-        self.__test = False
-        self.__filename = MEMINFO_FILE
+        self._cache = True
+        self._debug = False
+        self._test = False
+        self._filename = MEMINFO_FILE
 
-        if 'debug' in options and options['debug'] in [True, False]: self.__debug = options['debug']
-        if 'test' in options and options['test'] in [True, False]: self.__test = options['test']
-        if "cache" in options and options['cache'] in (True,False): self.__cache = options['cache']
-
+        if 'debug' in options and options['debug'] in [True, False]: self._debug = options['debug']
+        if 'test' in options and options['test'] in [True, False]: self._test = options['test']
+        if "cache" in options and options['cache'] in (True,False): self._cache = options['cache']
+        if "file" in options: self._filename = options['file']
 
     def parse_content( self, data = None ):
 
@@ -71,11 +71,11 @@ class MemoryInfo:
     def load_file( self, filename=None ):
 
         if not filename:
-            filename = self.__filename
+            filename = self._filename
 
         if not os.path.exists( filename ):
             tb = sys.exc_info()[2]
-            raise FileNotFoundError( "PID %(p)s state not found " % {'p': self.__info['pid'] } ).with_traceback(tb)
+            raise FileNotFoundError( "PID %(p)s state not found " % {'p': self._info['pid'] } ).with_traceback(tb)
 
         try:
 
@@ -86,8 +86,8 @@ class MemoryInfo:
             fd.close()
 
             info = self.parse_content( data )
-            if self.__cache:
-                self.__info = info
+            if self._cache:
+                self._info = info
 
             return info
 
@@ -101,13 +101,24 @@ class MemoryInfo:
 class MemoryUtil:
 
     def __init__( self ):
-        self.debug = False
-        self.test = False
+        self._debug = False
+        self._test = False
+        self._cache = None
+        self._dirty = False
+        self._filename = MEMINFO_FILE
 
-        if 'debug' in options and options['debug'] in [True, False]: self.debug = options['debug']
-        if 'test' in options: self.test and options['test'] in [True, False]= options['test']
+        if 'debug' in options and options['debug'] in [True, False]: self._debug = options['debug']
+        if 'test' in options and options['test'] in [True, False]: self._test = options['test']
+        if "cache" in options and options['cache'] in (True,False): self._cache = options['cache']
+        if "file" in options: self._filename = options['file']
 
 
+    def mem_scan( self, filename = None ):
+        pass
 
-if __name__ == "__main__":
+
+    def mem_by( self ):
+        pass
+
+if _name_ == "_main_":
     pass

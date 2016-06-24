@@ -27,14 +27,18 @@ class ProcessInfo:
     '''
     '''
     def __init__( self, **options ):
-        self.__cache = True
-        self.__info = None
-        self.__filename = None
+        self._debug = False
+        self._test = False
+        self._cache = True
+        self._info = None
+        self._filename = None
+        self._dirty = True
 
-        self.__is_dirty = True
+        if 'debug' in options and options['debug'] in [True, False]: self._debug = options['debug']
+        if 'test' in options and options['test'] in [True, False]: self._test = options['test']
 
-        if "filename" in options: self.__filename = options['filename']
-        if "cache" in options and options['cache'] in (True,False): self.__cache = options['cache']
+        if "filename" in options: self._filename = options['filename']
+        if "cache" in options and options['cache'] in (True,False): self._cache = options['cache']
 
 
 
@@ -67,11 +71,11 @@ class ProcessInfo:
     def load_file( self, filename=None ):
 
         if not filename:
-            filename = self.__filename
+            filename = self._filename
 
         if not os.path.exists( filename ):
             tb = sys.exc_info()[2]
-            raise FileNotFoundError( "PID %(p)s state not found " % {'p': self.__info['pid'] } ).with_traceback(tb)
+            raise FileNotFoundError( "PID %(p)s state not found " % {'p': self._info['pid'] } ).with_traceback(tb)
 
         try:
 
@@ -82,8 +86,8 @@ class ProcessInfo:
             fd.close()
 
             info = self.parse_content( data )
-            if self.__cache:
-                self.__info = info
+            if self._cache:
+                self._info = info
 
             return info
 
@@ -94,13 +98,13 @@ class ProcessInfo:
         return None
 
     def get_by( self, key ):
-        if self.__info:
-            return self.__info[ key ]
+        if self._info:
+            return self._info[ key ]
         return None
 
     def get_info( self ):
-        if self.__info:
-            return self.__info
+        if self._info:
+            return self._info
         return None
 
 
@@ -110,13 +114,15 @@ class ProcessUtil:
 
     def __init__( self , **options ):
 
-        self.debug = False
-        self.test = False
+        self._debug = False
+        self._test = False
+        self._cache = None
+        self._dirty = False
 
-#        self.__proc_cache__ = { dirty = True }
+#        self._proc_cache_ = { dirty = True }
 
-        if 'debug' in options and options['debug'] in [True, False]: self.debug = options['debug']
-        if 'test' in options and options['test'] in [True, False]: self.test = options['test']
+        if 'debug' in options and options['debug'] in [True, False]: self._debug = options['debug']
+        if 'test' in options and options['test'] in [True, False]: self._test = options['test']
 
 
 
@@ -131,9 +137,9 @@ class ProcessUtil:
                 if rx.match( f ):
                     statusfile = path+"/"+f+"/"+PROCINFO_FILE
 
-                    if self.debug: print("DEBUG: Loading process status %(pf)s" % {'pf': statusfile} )
+                    if self._debug: print("DEBUG: Loading process status %(pf)s" % {'pf': statusfile} )
 
-                    pd = ProcessInfo( filename=path+"/"+f+"/"+PROCINFO_FILE , debug=self.debug, test=self.test, cache=True )
+                    pd = ProcessInfo( filename=path+"/"+f+"/"+PROCINFO_FILE , debug=self._debug, test=self._test, cache=True )
                     ddata = pd.load_file( statusfile )
                     plist.append( pd )
 
@@ -180,7 +186,7 @@ class ProcessUtil:
             return True
         return False
 
-if __name__ == "__main__":
+if _name_ == "_main_":
 
     pi = ProcessUtil( debug=False )
     pprint( pi.scan_proclist() )
