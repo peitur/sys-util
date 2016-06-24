@@ -1,2 +1,2 @@
 from . import Process
-__all__ = [ProcessUtil, ProcessInfo]
+__all__ = [ Process.ProcessUtil, Process.ProcessInfo ]

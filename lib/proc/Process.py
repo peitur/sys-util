@@ -186,7 +186,7 @@ class ProcessUtil:
             return True
         return False
 
-if _name_ == "_main_":
+if __name__ == "__main__":
 
     pi = ProcessUtil( debug=False )
     pprint( pi.scan_proclist() )
