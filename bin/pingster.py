@@ -22,10 +22,11 @@ DEFAULT_PING_INTERVAL = 10
 DEFAULT_PING_TIMEOUT = 10
 DEFAULT_PING_CMD = "/usr/bin/ping"
 
-DEFAULT_START_STATE = False
+DEFAULT_START_STATE = None
 
 ## 64 bytes from plain1.example.redbridge.se (127.0.0.1): icmp_seq=1 ttl=64 time=0.039 ms
-PING_OK = r"^[0-9]+\s+bytes.+time=[0-9\.]+\s+ms"
+PING_OK = [ r"^[0-9]+\s+bytes.+time=[0-9\.]+\s+ms" ]
+PING_SKIP = [ r"^PING.+" ]
 
 #########################################################
 stdoutQueue = queue.Queue()
@@ -111,9 +112,15 @@ def queue_sizes():
     }
 
 def ping_ok_parser( line ):
+    for r in PING_OK:
+        if re.match( r, line ):
+            return True
+    return False
 
-    if re.match( PING_OK, line ):
-        return True
+def ping_skip_parser( line ):
+    for r in PING_SKIP:
+        if re.match( r, line ):
+            return True
     return False
 
 def ping_thread( options ):
@@ -136,9 +143,8 @@ def ping_thread( options ):
 
     proc = subprocess.Popen( cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, bufsize=128 )
     while threadsRunning:
-
         line = proc.stdout.readline().lstrip().rstrip()
-        if len( line ) > 0:
+        if len( line ) > 0 and not ping_skip_parser( line ):
             if  ping_ok_parser( line ):
                 stateQueue.put( { "hostname": hostname, "state": True, "config": options } )
             else:
@@ -163,9 +169,9 @@ def action_thread( options ):
 
             state_str = "n/a"
             if data['to_state']:
-                state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": data['to_state'], "nc": END }
+                state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": "Online", "nc": END }
             else:
-                state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": data['to_state'], "nc": END }
+                state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": "Offline", "nc": END }
 
             hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
             name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
