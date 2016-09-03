@@ -149,6 +149,8 @@ def action_thread( options ):
         try:
             data = actionQueue.get( block=True, timeout=1 )
 
+            stdoutQueue.put( data )
+
         except queue.Empty:
             pass
 
@@ -190,10 +192,8 @@ def state_thread( options ):
 
             stateStore[ hostname ]['state'] = newState
 
-            if oldState == newState:
-                pass
-            else:
-                stdoutQueue.put( { "hostname":hostname, "from_state": oldState, "to_state": newState, "config": data['config'] } )
+            if oldState != newState:
+                actionQueue.put( { "hostname":hostname, "from_state": oldState, "to_state": newState, "config": data['config'] } )
 
 
 
