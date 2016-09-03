@@ -228,7 +228,7 @@ def timer_thread( options ):
 
     while threadsRunning:
         tt = waittime
-        while tt > 0:
+        while tt > 0 and threadsRunning:
             time.sleep( 1 )
             tt -= 1
 
