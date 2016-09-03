@@ -9,6 +9,15 @@ from pprint import pprint
 
 #########################################################
 
+RED = '\033[91m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+LIGHT_PURPLE = '\033[94m'
+PURPLE = '\033[95m'
+END = '\033[0m'
+
+#########################################################
+
 DEFAULT_PING_INTERVAL = 10
 DEFAULT_PING_TIMEOUT = 10
 DEFAULT_PING_CMD = "/usr/bin/ping"
@@ -29,7 +38,6 @@ actionQueue  = queue.Queue()
 threadsRunning = True
 
 stateStore = {}
-
 
 def signal_int_handler(signal, frame):
     global threadsRunning
@@ -60,8 +68,7 @@ def is_dict( data ):
         return True
     return False
 
-
-
+#########################################################
 
 def read_json( filename, **options ):
 	'''
@@ -148,8 +155,23 @@ def action_thread( options ):
 
         try:
             data = actionQueue.get( block=True, timeout=1 )
+            config = data['config']
+            name = ""
+            if 'name' in config:
+                name = config['name']
 
-            stdoutQueue.put( data )
+
+            state_str = "n/a"
+            if data['to_state']:
+                state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": data['to_state'], "nc": END }
+            else:
+                state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": data['to_state'], "nc": END }
+
+            hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
+            name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
+
+
+            stdoutQueue.put( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
 
         except queue.Empty:
             pass
@@ -170,8 +192,6 @@ def timer_thread( options ):
     while waittime > 0 and threadsRunning:
         time.sleep( 1 )
         waittime -= 1
-
-
 
 
 
