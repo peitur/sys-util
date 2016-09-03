@@ -102,6 +102,35 @@ def read_json( filename, **options ):
 
 
 
+def status_list( status, frame="" ):
+    result = []
+
+    result.append(frame)
+    for s in status:
+
+        data = status[s]
+        config = data['config']
+
+        name = ""
+        if 'name' in config:
+            name = config['name']
+
+        state_str = "n/a"
+        if data['state']:
+            state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": "Online", "nc": END }
+        else:
+            state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": "Offline", "nc": END }
+
+        hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
+        name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
+
+        result.append( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
+
+    result.append(frame)
+
+    return result
+
+
 def queue_sizes():
     return {
         "stateQueue" : stateQueue.qsize(),
@@ -161,23 +190,25 @@ def action_thread( options ):
 
         try:
             data = actionQueue.get( block=True, timeout=1 )
-            config = data['config']
-            name = ""
-            if 'name' in config:
-                name = config['name']
+            if "mode" in data and data['mode'] == "change":
 
+                config = data['config']
+                name = ""
+                if 'name' in config:
+                    name = config['name']
 
-            state_str = "n/a"
-            if data['to_state']:
-                state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": "Online", "nc": END }
-            else:
-                state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": "Offline", "nc": END }
+                state_str = "n/a"
+                if data['to_state']:
+                    state_str = "%(col)s %(str)s %(nc)s" % { "col": GREEN, "str": "Online", "nc": END }
+                else:
+                    state_str = "%(col)s %(str)s %(nc)s" % { "col": RED, "str": "Offline", "nc": END }
 
-            hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
-            name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
+                hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
+                name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
+                stdoutQueue.put( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
 
-
-            stdoutQueue.put( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
+            elif "mode" in data and data['mode'] == "summary":
+                stdoutQueue.put( "\n".join( status_list( stateStore, "============================================================" ) ) )
 
         except queue.Empty:
             pass
@@ -191,13 +222,17 @@ def timer_thread( options ):
     debug = False
     if "debug" in options: debug = options['debug']
 
-    waittime = 1
+    waittime = 10
     if 'wait' in options:
         waittime = options['wait']
 
-    while waittime > 0 and threadsRunning:
-        time.sleep( 1 )
-        waittime -= 1
+    while threadsRunning:
+        tt = waittime
+        while tt > 0:
+            time.sleep( 1 )
+            tt -= 1
+
+        actionQueue.put( { "mode": "summary" } )
 
 
 
@@ -219,7 +254,7 @@ def state_thread( options ):
             stateStore[ hostname ]['state'] = newState
 
             if oldState != newState:
-                actionQueue.put( { "hostname":hostname, "from_state": oldState, "to_state": newState, "config": data['config'] } )
+                actionQueue.put( { "mode": "change", "hostname":hostname, "from_state": oldState, "to_state": newState, "config": data['config'] } )
 
 
 
@@ -282,6 +317,7 @@ if __name__ == "__main__":
         threads['stderr'] = threading.Thread( target=print_stderr_thread, args=(options,) )
         threads['status'] = threading.Thread( target=state_thread, args=(options,) )
         threads['action'] = threading.Thread( target=action_thread, args=(options,) )
+        threads['timer'] = threading.Thread( target=timer_thread, args=(options,) )
 
         for t in threads: threads[t].start()
 
@@ -298,6 +334,8 @@ if __name__ == "__main__":
             for c in hostlist:
 
                 c['debug'] = options['debug']
+                name = ""
+                if 'name' in c: name = c['name']
                 stateStore[ c['hostname'] ] = { "hostname": c['hostname'], "state": DEFAULT_START_STATE, "config": c }
 
                 kname = "ping_%s" % ( c['hostname'] )
@@ -313,8 +351,6 @@ if __name__ == "__main__":
 
         time.sleep(30)
         threadsRunning = False
-
-        pprint( stateStore )
 
         for t in threads: threads[t].join()
 
