@@ -126,7 +126,7 @@ def status_list( status, frame="" ):
 
     result.append(frame)
     result.append( "%(col)s %(str)-47s %(time)s %(end)s" % { 'col': BLUE, 'end': END, 'str': "Time:", 'time': timestamp_now } )
-    for s in status:
+    for s in sorted( status ):
         data = status[s]
         config = data['config']
 
@@ -184,6 +184,8 @@ def ping_thread( options ):
 
     cmd_arr = [ DEFAULT_PING_CMD ]
 #    cmd_arr.append( "-i "+interval.__str__() )
+    cmd_arr.append( "-n" )
+    cmd_arr.append( "-W "+timeout.__str__() )
     cmd_arr.append( hostname )
 
     if debug: stdoutQueue.put( "DEBUG: COMMAND: '%(cmd)s'" % {'cmd': " ".join( cmd_arr ) } )
