@@ -125,7 +125,7 @@ def status_list( status, frame="" ):
     timestamp_now = datetime.datetime.now()
 
     result.append(frame)
-    result.append( "%(col)s%(str)-48s %(time)s %(end)s" % { 'col': YELLOW, 'end': END, 'str': "Time:", 'time': timestamp_now } )
+    result.append( "%(col)s %(str)-47s %(time)s %(end)s" % { 'col': BLUE, 'end': END, 'str': "Time:", 'time': timestamp_now } )
     for s in status:
         data = status[s]
         config = data['config']
@@ -223,10 +223,10 @@ def action_thread( options ):
 
                 hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
                 name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
-                stdoutQueue.put( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
+                stdoutQueue.put( ">>> %(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
 
             elif "mode" in data and data['mode'] == "summary":
-                stdoutQueue.put( "\n".join( status_list( stateStore, "============================================================" ) ) )
+                stdoutQueue.put( "\n".join( status_list( stateStore, "=========================================================================" ) ) )
 
         except queue.Empty:
             pass
