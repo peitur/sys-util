@@ -25,8 +25,12 @@ PROCINFO_FIELDS={
 
 class ProcessInfo:
     '''
+    Process information class. Contains the detailes information for each process in the system.
+    Currently all data in contained in a dictionary.
     '''
     def __init__( self, **options ):
+        '''
+        '''
         self._debug = False
         self._test = False
         self._cache = True
@@ -89,13 +93,13 @@ class ProcessInfo:
             if self._cache:
                 self._info = info
 
-            return info
 
         except Exception as error:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
 
-        return None
+        else:
+            return info
 
     def get_by( self, key ):
         if self._info:
@@ -130,7 +134,6 @@ class ProcessUtil:
         rx = re.compile( "^[0-9]+$" )
 
         plist = []
-
         for f in os.listdir( path ):
             try:
 
@@ -149,10 +152,20 @@ class ProcessUtil:
                 pprint( error )
                 pass
 
-        return plist
+            else:
+                return plist
 
-    def proc_tree( self, proclist ):
-        pass
+
+    def proc_tree( self, proclist = [] ):
+
+        if len( proclist ) == 0:
+            proclist = self.scan_proclist( )
+
+        for proc in proclist:
+            print( "PID: %s" % { 'proc': proc } )
+
+
+        return len( proclist )
 
     def proc_by( self, key, objfilter, **options ):
         '''
@@ -198,3 +211,4 @@ if __name__ == "__main__":
     print("Got %(n)s 'sshd' exact matches " % {'n': len( pl3 ) } )
     print( "Running? 'ssh': %(r)s" % { 'r': pi.proc_running( 'nfs' ) } )
     print( "Running? 'sshd': %(r)s" % { 'r': pi.proc_running( 'nfsd' ) } )
+    pprint( pi.proc_tree() )

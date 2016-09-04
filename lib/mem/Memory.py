@@ -89,11 +89,12 @@ class MemoryInfo:
             if self._cache:
                 self._info = info
 
-            return info
-
         except Exception as error:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+
+        else:
+            return info
 
         return None
 
