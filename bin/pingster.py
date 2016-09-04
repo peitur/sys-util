@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os,re,sys,signal
-import json, time
+import json, time, datetime
 import threading, queue
 import shlex, subprocess
 from pprint import pprint
@@ -9,12 +9,24 @@ from pprint import pprint
 
 #########################################################
 
-RED = '\033[91m'
-GREEN = '\033[92m'
-YELLOW = '\033[93m'
-LIGHT_PURPLE = '\033[94m'
-PURPLE = '\033[95m'
 END = '\033[0m'
+
+BLACK = '\033[30m'
+RED = '\033[31m'
+GREEN = '\033[32m'
+ORANGE = '\033[33m'
+BLUE = '\033[34m'
+PURPLE = '\033[35m'
+CYAN = '\033[36m'
+YELLOW = '\033[93m'
+PINK = '\033[95m'
+DARKGRAY = '\033[90m'
+
+LIGHTGRAY = '\033[37m'
+LIGHTRED = '\033[91m'
+LIGHTGREEN = '\033[92m'
+LIGHTBLUE = '\033[94m'
+LIGHTCYAN = '\033[96m'
 
 #########################################################
 
@@ -39,13 +51,18 @@ actionQueue  = queue.Queue()
 threadsRunning = True
 
 stateStore = {}
+threadInfo = {}
 
 def signal_int_handler(signal, frame):
     global threadsRunning
     print('You pressed Ctrl+C!')
     threadsRunning = False
 
+def signal_hup_handler(signal, frame):
+    pass
+
 signal.signal( signal.SIGINT, signal_int_handler )
+signal.signal( signal.SIGHUP, signal_hup_handler )
 
 
 #########################################################
@@ -105,9 +122,11 @@ def read_json( filename, **options ):
 def status_list( status, frame="" ):
     result = []
 
-    result.append(frame)
-    for s in status:
+    timestamp_now = datetime.datetime.now()
 
+    result.append(frame)
+    result.append( "%(col)s%(str)-48s %(time)s %(end)s" % { 'col': YELLOW, 'end': END, 'str': "Time:", 'time': timestamp_now } )
+    for s in status:
         data = status[s]
         config = data['config']
 
@@ -123,7 +142,6 @@ def status_list( status, frame="" ):
 
         hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
         name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
-
         result.append( "%(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
 
     result.append(frame)
@@ -309,6 +327,8 @@ def print_stderr_thread( options ):
 
 
 
+
+
 if __name__ == "__main__":
 
     options = {}
@@ -317,16 +337,17 @@ if __name__ == "__main__":
     options['script'] = sys.argv.pop(0)
     options['filename'] = None
 
+    threadInfo = {}
+
     if len( sys.argv ) > 0:
 
-        threads = {}
-        threads['stdout'] = threading.Thread( target=print_stdout_thread, args=(options,) )
-        threads['stderr'] = threading.Thread( target=print_stderr_thread, args=(options,) )
-        threads['status'] = threading.Thread( target=state_thread, args=(options,) )
-        threads['action'] = threading.Thread( target=action_thread, args=(options,) )
-        threads['timer'] = threading.Thread( target=timer_thread, args=(options,) )
+        threadInfo['stdout'] = threading.Thread( target=print_stdout_thread, args=(options,) )
+        threadInfo['stderr'] = threading.Thread( target=print_stderr_thread, args=(options,) )
+        threadInfo['status'] = threading.Thread( target=state_thread, args=(options,) )
+        threadInfo['action'] = threading.Thread( target=action_thread, args=(options,) )
+        threadInfo['timer'] = threading.Thread( target=timer_thread, args=(options,) )
 
-        for t in threads: threads[t].start()
+        for t in threadInfo: threadInfo[ t ].start()
 
         options['filename'] = sys.argv.pop(0)
 
@@ -346,8 +367,8 @@ if __name__ == "__main__":
                 stateStore[ c['hostname'] ] = { "hostname": c['hostname'], "state": DEFAULT_START_STATE, "config": c }
 
                 kname = "ping_%s" % ( c['hostname'] )
-                threads[ kname ] = threading.Thread( target=ping_thread, args=( c ,) )
-                threads[ kname ].start()
+                threadInfo[ kname ] = threading.Thread( target=ping_thread, args=( c ,) )
+                threadInfo[ kname ].start()
 
                 if options['debug']: print(">>>> Started %s" % ( kname ) )
 
@@ -356,10 +377,7 @@ if __name__ == "__main__":
             pprint( error )
 
 
-#        time.sleep(30)
-#        threadsRunning = False
-
-        for t in threads: threads[t].join()
+        for t in threadInfo: threadInfo[ t ].join()
 
     else:
         print("No config file ...")
