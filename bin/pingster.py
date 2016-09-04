@@ -20,7 +20,7 @@ END = '\033[0m'
 
 DEFAULT_PING_INTERVAL = 10
 DEFAULT_PING_TIMEOUT = 10
-DEFAULT_PING_CMD = "/usr/bin/ping"
+DEFAULT_PING_CMD = "ping"
 
 DEFAULT_START_STATE = None
 
@@ -222,12 +222,19 @@ def timer_thread( options ):
     debug = False
     if "debug" in options: debug = options['debug']
 
-    waittime = 10
+    waittime = 900
     if 'wait' in options:
         waittime = options['wait']
 
+    initialTime = 10
+    firstRun = True
     while threadsRunning:
         tt = waittime
+
+        if firstRun:
+            tt = initialTime
+            firstRun = False
+
         while tt > 0 and threadsRunning:
             time.sleep( 1 )
             tt -= 1
@@ -349,8 +356,8 @@ if __name__ == "__main__":
             pprint( error )
 
 
-        time.sleep(30)
-        threadsRunning = False
+#        time.sleep(30)
+#        threadsRunning = False
 
         for t in threads: threads[t].join()
 
