@@ -32,6 +32,10 @@ LIGHTCYAN = '\033[96m'
 
 DEFAULT_PING_INTERVAL = 10
 DEFAULT_PING_TIMEOUT = 10
+
+DEFAULT_PING_TIMEOUT_LINUX = 1
+DEFAULT_PING_TIMEOUT_OSX = 1000
+
 DEFAULT_PING_CMD = "ping"
 
 DEFAULT_START_STATE = None
@@ -175,17 +179,17 @@ def ping_thread( options ):
     debug = False
 
     hostname = options['hostname']
-    timeout = DEFAULT_PING_TIMEOUT
+    timeout = DEFAULT_PING_TIMEOUT * 1000
     interval = DEFAULT_PING_INTERVAL
 
     if "debug" in options: debug = options['debug']
-    if "timeout" in options: timeout = options['timeout']
+    if "timeout" in options: timeout = int( options['timeout'] ) * 1000
     if "interval" in options: interval = options['interval']
 
     cmd_arr = [ DEFAULT_PING_CMD ]
-#    cmd_arr.append( "-i "+interval.__str__() )
     cmd_arr.append( "-n" )
-    cmd_arr.append( "-W "+timeout.__str__() )
+    cmd_arr.append( "-i "+interval.__str__() )
+#    cmd_arr.append( "-W "+timeout.__str__() )
     cmd_arr.append( hostname )
 
     if debug: stdoutQueue.put( "DEBUG: COMMAND: '%(cmd)s'" % {'cmd': " ".join( cmd_arr ) } )
@@ -212,6 +216,8 @@ def action_thread( options ):
             data = actionQueue.get( block=True, timeout=1 )
             if "mode" in data and data['mode'] == "change":
 
+                timestamp_now = datetime.datetime.now()
+
                 config = data['config']
                 name = ""
                 if 'name' in config:
@@ -225,7 +231,7 @@ def action_thread( options ):
 
                 hostname_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": data['hostname'], "nc": END }
                 name_str = "%(col)s %(str)s %(nc)s" % { "col": PURPLE, "str": name, "nc": END }
-                stdoutQueue.put( ">>> %(host)-32s %(name)-32s %(st)s" % { 'host': hostname_str, 'name': name_str, 'st': state_str } )
+                stdoutQueue.put( "%(time)s >>> %(host)-32s %(name)-32s %(st)s" % { 'time': timestamp_now, 'host': hostname_str, 'name': name_str, 'st': state_str } )
 
             elif "mode" in data and data['mode'] == "summary":
                 stdoutQueue.put( "\n".join( status_list( stateStore, "=========================================================================" ) ) )
