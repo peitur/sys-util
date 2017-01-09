@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os,re,sys,signal
 import json, time, datetime
@@ -30,8 +30,8 @@ LIGHTCYAN = '\033[96m'
 
 #########################################################
 
-DEFAULT_PING_INTERVAL = 10
-DEFAULT_PING_TIMEOUT = 10
+DEFAULT_PING_INTERVAL = 1
+DEFAULT_PING_TIMEOUT = 1
 
 DEFAULT_PING_TIMEOUT_LINUX = 1
 DEFAULT_PING_TIMEOUT_OSX = 1000
@@ -183,26 +183,27 @@ def ping_thread( options ):
     interval = DEFAULT_PING_INTERVAL
 
     if "debug" in options: debug = options['debug']
-    if "timeout" in options: timeout = int( options['timeout'] ) * 1000
+    if "timeout" in options: timeout = int( options['timeout'] )
     if "interval" in options: interval = options['interval']
 
     cmd_arr = [ DEFAULT_PING_CMD ]
     cmd_arr.append( "-n" )
     cmd_arr.append( "-i "+interval.__str__() )
-#    cmd_arr.append( "-W "+timeout.__str__() )
+    cmd_arr.append( "-W "+timeout.__str__() )
     cmd_arr.append( hostname )
 
     if debug: stdoutQueue.put( "DEBUG: COMMAND: '%(cmd)s'" % {'cmd': " ".join( cmd_arr ) } )
-
-    proc = subprocess.Popen( cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, bufsize=128 )
-    while threadsRunning:
-        line = proc.stdout.readline().lstrip().rstrip()
-        if len( line ) > 0 and not ping_skip_parser( line ):
-            if  ping_ok_parser( line ):
-                stateQueue.put( { "hostname": hostname, "state": True, "config": options } )
-            else:
-                stateQueue.put( { "hostname": hostname, "state": False , "config": options } )
-
+    try:
+        proc = subprocess.Popen( cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, bufsize=128 )
+        while threadsRunning:
+            line = proc.stdout.readline().lstrip().rstrip()
+            if len( line ) > 0 and not ping_skip_parser( line ):
+                if  ping_ok_parser( line ):
+                    stateQueue.put( { "hostname": hostname, "state": True, "config": options } )
+                else:
+                    stateQueue.put( { "hostname": hostname, "state": False , "config": options } )
+    except:
+        stateQueue.put( { "hostname": hostname, "state": False , "config": options } )
 
 
 def action_thread( options ):
